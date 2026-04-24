@@ -100,3 +100,9 @@ Here's a preview:
 - Do not start coding until Sol approves the spec in Step 4
 - If Sol's goal is vague, make your best guess and flag your assumptions clearly
 - Keep the whole interview under 5 minutes of Sol's time
+
+
+## ? HARD RULE
+Do NOT write any code until Sol explicitly says 'approved' or 'go ahead'.
+After writing the spec draft, STOP and wait for Sol's confirmation.
+If Sol does not confirm, ask again. Never proceed to coding on your own.

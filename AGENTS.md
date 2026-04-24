@@ -34,3 +34,8 @@ You are a reviewer. Do NOT rewrite from scratch.
 #### ?? What Works
 #### ?? Action Plan for Claude Code
 #### ? Questions for Sol
+
+
+## ? HARD RULE
+Do NOT write any code until Sol explicitly says 'approved' or 'go ahead'.
+Spec first. Wait. Only build after Sol confirms.

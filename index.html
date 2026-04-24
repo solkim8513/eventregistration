@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NIS Event Registration Admin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Admin navigation">
+        <div class="brand">
+          <span class="brand-mark">NIS</span>
+          <div>
+            <strong>Event Admin</strong>
+            <span>Registration POC</span>
+          </div>
+        </div>
+
+        <nav class="nav-list" aria-label="Primary">
+          <button class="nav-item active" type="button">Events</button>
+          <button class="nav-item" type="button">Check-in</button>
+          <button class="nav-item" type="button">Reminders</button>
+          <button class="nav-item" type="button">Reports</button>
+        </nav>
+
+        <div class="sidebar-note">
+          <strong>POC scope</strong>
+          <span>Static sample data now. Power Apps and SharePoint Lists later.</span>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Internal events</p>
+            <h1>Registration control center</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="secondary-button" type="button">Export list</button>
+            <button class="primary-button" type="button">Create event</button>
+          </div>
+        </header>
+
+        <section class="summary-grid" aria-label="Event summary">
+          <div class="metric">
+            <span>Upcoming events</span>
+            <strong id="metricEvents">0</strong>
+          </div>
+          <div class="metric">
+            <span>Total registered</span>
+            <strong id="metricRegistered">0</strong>
+          </div>
+          <div class="metric">
+            <span>Checked in</span>
+            <strong id="metricCheckedIn">0</strong>
+          </div>
+          <div class="metric">
+            <span>Open tasks</span>
+            <strong id="metricTasks">0</strong>
+          </div>
+        </section>
+
+        <div class="workspace">
+          <section class="event-list-panel" aria-label="Events">
+            <div class="section-header">
+              <div>
+                <h2>Events</h2>
+                <p>Select an event to manage registrations and reminders.</p>
+              </div>
+              <select id="statusFilter" aria-label="Filter events by status">
+                <option value="all">All statuses</option>
+                <option value="Planning">Planning</option>
+                <option value="Open">Open</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+            <div class="event-list" id="eventList"></div>
+          </section>
+
+          <section class="detail-panel" aria-label="Selected event details">
+            <div class="event-hero">
+              <div>
+                <p class="eyebrow" id="eventStatus">Open</p>
+                <h2 id="eventTitle">Select an event</h2>
+                <p id="eventMeta">Event details appear here.</p>
+              </div>
+              <div class="capacity-pill" id="eventCapacity">0 / 0</div>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="Event detail views">
+              <button class="tab active" data-tab="registrants" type="button">Registrants</button>
+              <button class="tab" data-tab="checkin" type="button">Check-in</button>
+              <button class="tab" data-tab="reminders" type="button">Reminders</button>
+              <button class="tab" data-tab="tasks" type="button">Tasks</button>
+            </div>
+
+            <section class="tab-panel active" id="registrantsPanel">
+              <div class="table-toolbar">
+                <input id="registrantSearch" type="search" placeholder="Search registrants" />
+                <button class="secondary-button" type="button">Add registrant</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Department</th>
+                      <th>Guests</th>
+                      <th>Dietary notes</th>
+                      <th>Status</th>
+                      <th>Check-in</th>
+                    </tr>
+                  </thead>
+                  <tbody id="registrantRows"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="checkinPanel">
+              <div class="checkin-box">
+                <label for="checkinSearch">Find attendee</label>
+                <input id="checkinSearch" type="search" placeholder="Type a name, department, or note" />
+                <div class="checkin-list" id="checkinList"></div>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="remindersPanel">
+              <div class="reminder-layout">
+                <form class="reminder-form">
+                  <label>
+                    Audience
+                    <select>
+                      <option>All registered employees</option>
+                      <option>Not checked in</option>
+                      <option>Waitlist only</option>
+                    </select>
+                  </label>
+                  <label>
+                    Subject
+                    <input id="reminderSubject" type="text" />
+                  </label>
+                  <label>
+                    Message
+                    <textarea id="reminderMessage" rows="8"></textarea>
+                  </label>
+                  <div class="form-actions">
+                    <button class="secondary-button" type="button">Save draft</button>
+                    <button class="primary-button" type="button">Schedule reminder</button>
+                  </div>
+                </form>
+                <div class="reminder-preview">
+                  <span>Preview</span>
+                  <strong id="previewSubject"></strong>
+                  <p id="previewMessage"></p>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="tasksPanel">
+              <div class="task-list" id="taskList"></div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
