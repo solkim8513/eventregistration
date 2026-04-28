@@ -51,7 +51,7 @@
               <h1>Registration control center</h1>
             </div>
             <div class="topbar-actions">
-              <button class="secondary-button" type="button">Export list</button>
+              <button class="secondary-button" onclick="exportToExcel()" type="button">Export list</button>
               <button class="primary-button" onclick="showScreen('screen-setup')" type="button">+ Create event</button>
             </div>
           </header>
@@ -189,8 +189,8 @@
             </div>
             <div class="topbar-actions">
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
-              <button class="secondary-button" type="button">Download CSV template</button>
-              <button class="primary-button" type="button">Upload CSV</button>
+              <button class="secondary-button" onclick="downloadCsvTemplate()" type="button">Download CSV template</button>
+              <button class="primary-button" onclick="mockUploadCsv()" type="button">Upload CSV</button>
             </div>
           </header>
 
@@ -212,7 +212,7 @@
 
             <div class="upload-drop-zone">
               <p>Drag and drop your CSV here, or</p>
-              <button class="primary-button" type="button">Browse files</button>
+              <button class="primary-button" onclick="mockUploadCsv()" type="button">Browse files</button>
               <p class="upload-note">Accepted: .csv &mdash; max 1,000 rows</p>
             </div>
 
@@ -227,7 +227,7 @@
               </table>
             </div>
             <div style="display:flex;gap:12px;margin-top:18px">
-              <button class="secondary-button" type="button">Clear</button>
+              <button class="secondary-button" onclick="clearUploadPreview()" type="button">Clear</button>
               <button class="primary-button" onclick="confirmInvitees()" type="button">Confirm &amp; add 10 invitees</button>
             </div>
             <div id="uploadSuccessBanner" class="success-banner hidden"></div>
@@ -371,7 +371,10 @@
                 <h1 class="checkin-title">Event Check-in</h1>
               </div>
               <div class="checkin-header-stats" id="checkinHeaderStats"></div>
-              <button class="checkin-admin-back" onclick="showScreen('screen-closed')" type="button">&larr; Admin</button>
+              <div class="checkin-actions">
+                <button class="checkin-admin-back" onclick="showScreen('screen-closed')" type="button">&larr; Admin</button>
+                <button class="primary-button" onclick="completeEvent()" type="button">Complete event &amp; review results</button>
+              </div>
             </div>
 
             <div class="checkin-body">
@@ -422,7 +425,7 @@
               <button id="btnSendSurvey" class="secondary-button" onclick="sendPostEventSurvey()" type="button">Send post-event survey</button>
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
               <button class="secondary-button" onclick="exportToExcel()" type="button">Export to Excel</button>
-              <button class="primary-button" onclick="archiveEvent()" type="button">Archive event</button>
+              <button id="btnArchiveEvent" class="primary-button" onclick="archiveEvent()" type="button">Archive event</button>
             </div>
           </header>
 

@@ -24,7 +24,7 @@ const happyHour = {
     { id: 7,  firstName: "Lisa",    lastName: "Park",     contract: "NIS Employee",           department: "Customer Care", regStatus: "Canceled",   guestName: "",          dietary: "",            attendanceStatus: "—",              remindersSent: 0, respondedAt: "May 2"  },
     { id: 8,  firstName: "Robert",  lastName: "Chen",     contract: "Contractor - Booz Allen",department: "Compliance",    regStatus: "Registered", guestName: "Nina Chen", dietary: "No pork",     attendanceStatus: "Not Checked In", remindersSent: 1, respondedAt: "Apr 30" },
     { id: 9,  firstName: "Amanda",  lastName: "Rivera",   contract: "NIS Employee",           department: "Sales",         regStatus: "Invited",    guestName: "",          dietary: "",            attendanceStatus: "—",              remindersSent: 2, respondedAt: ""       },
-    { id: 10, firstName: "Michael", lastName: "Thompson", contract: "NIS Employee",           department: "Facilities",    regStatus: "Registered", guestName: "",          dietary: "",            attendanceStatus: "Walk-in",        remindersSent: 0, respondedAt: "Walk-in"},
+    { id: 10, firstName: "Michael", lastName: "Thompson", contract: "NIS Employee",           department: "Facilities",    regStatus: "—",          guestName: "",          dietary: "",            attendanceStatus: "Walk-in",        remindersSent: 0, respondedAt: "Walk-in"},
   ],
 };
 
@@ -62,12 +62,40 @@ const uploadPreviewData = [
 var selectedEventId = "happy-hour";
 var rsvpState       = null;
 var rsvpCanceled    = false;
+var rsvpAttendeeId  = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function hh() { return happyHour.attendees; }
 
 function fullName(a) { return a.firstName + " " + a.lastName; }
+
+function isRegistrationLocked() {
+  return ["Closed", "Completed", "Archived"].indexOf(happyHour.status) !== -1;
+}
+
+function invitedCount() {
+  return hh().filter(function(a) { return a.regStatus !== "—"; }).length;
+}
+
+function addAudit(attendee, change, changedBy) {
+  auditLog.unshift({
+    timestamp: "May 4, 2026 (now)",
+    attendee: attendee,
+    change: change,
+    changedBy: changedBy || "System demo",
+  });
+}
+
+function findAttendeeForRsvp(state) {
+  var email = (state.email || "").toLowerCase();
+  var first = (state.firstName || "").toLowerCase();
+  var last = (state.lastName || "").toLowerCase();
+  return hh().find(function(a) {
+    return (a.email && a.email.toLowerCase() === email)
+      || (a.firstName.toLowerCase() === first && a.lastName.toLowerCase() === last);
+  });
+}
 
 function badgeClass(status) {
   if (["Open", "Registered", "Checked In", "Sent", "Completed"].indexOf(status) !== -1) return "green";
@@ -109,6 +137,22 @@ function showShell(shell, screenId) {
 }
 
 function showScreen(id) {
+  if ((id === "screen-rsvp" || id === "screen-edit-rsvp") && isRegistrationLocked()) {
+    showToast("Registration is closed. Please contact Rebecca Bunch for changes.", true);
+    id = "screen-invite";
+  }
+  if (id === "screen-edit-rsvp" && !rsvpState) {
+    showToast("Submit an RSVP first, then you can edit it.", true);
+    id = "screen-rsvp";
+  }
+  if (id === "screen-closed" && (happyHour.status === "Draft" || happyHour.status === "Open")) {
+    happyHour.status = "Closed";
+    showToast("Registration closed for Happy Hour.");
+  }
+  if (id === "screen-checkin" && (happyHour.status === "Draft" || happyHour.status === "Open")) {
+    happyHour.status = "Closed";
+    showToast("Registration closed before starting day-of check-in.");
+  }
   document.querySelectorAll(".screen").forEach(function(s) { s.classList.add("hidden"); });
   var target = document.getElementById(id);
   if (target) target.classList.remove("hidden");
@@ -144,21 +188,55 @@ function openEvent() {
 }
 
 function closeRegistrationNow() {
+  if (happyHour.status === "Archived") {
+    showToast("Archived events cannot be reopened or closed again.", true);
+    return;
+  }
   happyHour.status = "Closed";
+  showToast("Registration closed for Happy Hour.");
   showScreen("screen-closed");
 }
 
+function completeEvent() {
+  if (happyHour.status === "Archived") {
+    showToast("Archived events cannot be changed.", true);
+    return;
+  }
+  if (happyHour.status !== "Completed") {
+    hh().forEach(function(a) {
+      if (a.regStatus === "Registered" && a.attendanceStatus === "Not Checked In") {
+        a.attendanceStatus = "No-show";
+      }
+    });
+    happyHour.status = "Completed";
+    addAudit("Happy Hour", "Event status: Closed → Completed; remaining registered attendees marked No-show", "Admin demo");
+  }
+  showToast("Happy Hour completed. Results are ready for review.");
+  showScreen("screen-export");
+}
+
 function sendPostEventSurvey() {
+  if (happyHour.status !== "Completed") {
+    showToast("Complete the event before sending the post-event survey.", true);
+    return;
+  }
   var eligible = hh().filter(function(a) {
     return a.attendanceStatus === "Checked In" || a.attendanceStatus === "Walk-in";
   });
-  happyHour.status = "Completed";
+  if (eligible.length === 0) {
+    showToast("No checked-in attendees are eligible for the survey yet.", true);
+    return;
+  }
   happyHour.surveySent = true;
   renderExport();
   showToast("Post-event survey sent to " + eligible.length + " checked-in attendees.");
 }
 
 function archiveEvent() {
+  if (happyHour.status !== "Completed") {
+    showToast("Complete the event before archiving it.", true);
+    return;
+  }
   happyHour.status = "Archived";
   showToast("Happy Hour has been archived.");
   showScreen("screen-dashboard");
@@ -166,6 +244,23 @@ function archiveEvent() {
 
 function exportToExcel() {
   showToast("Downloaded: Happy_Hour_Results_2026-05-16.xlsx");
+}
+
+function downloadCsvTemplate() {
+  showToast("Downloaded: Happy_Hour_Invite_Template.csv");
+}
+
+function mockUploadCsv() {
+  renderUploadPreview();
+  showToast("Sample CSV loaded and validated: 10 valid records, 0 errors.");
+}
+
+function clearUploadPreview() {
+  var rows = document.getElementById("uploadPreviewRows");
+  var banner = document.getElementById("uploadSuccessBanner");
+  if (rows) rows.innerHTML = "";
+  if (banner) banner.classList.add("hidden");
+  showToast("Upload preview cleared.");
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -228,7 +323,10 @@ function renderEventDetail() {
       actions += '<button class="secondary-button" onclick="showScreen(\'screen-checkin\')">Day-of check-in</button>';
       actions += '<button class="secondary-button" onclick="showScreen(\'screen-export\')">Results &amp; export</button>';
     }
-    if (ev.status === "Completed" || ev.status === "Archived") {
+    if (ev.status === "Closed") {
+      actions += '<button class="primary-button" onclick="completeEvent()">Complete event</button>';
+    }
+    if (ev.status === "Archived") {
       actions += '<button class="secondary-button" onclick="showScreen(\'screen-export\')">Results &amp; export</button>';
     }
     document.getElementById("eventQuickActions").innerHTML =
@@ -278,7 +376,7 @@ function renderMonitoring() {
     statBox("Registered",  registered, "green") +
     statBox("Declined",    declined,   "red")   +
     statBox("Canceled",    canceled,   "red")   +
-    statBox("Total invited", hh().length);
+    statBox("Total invited", invitedCount());
 
   renderMonitoringTable();
   renderReminderLog();
@@ -433,7 +531,11 @@ function renderCheckinList() {
   var search = (document.getElementById("checkinSearch").value || "").toLowerCase();
   var rows = hh().filter(function(a) {
     return a.regStatus === "Registered" &&
-      (!search || fullName(a).toLowerCase().indexOf(search) !== -1);
+      (!search
+        || fullName(a).toLowerCase().indexOf(search) !== -1
+        || a.contract.toLowerCase().indexOf(search) !== -1
+        || a.department.toLowerCase().indexOf(search) !== -1
+        || (a.guestName && a.guestName.toLowerCase().indexOf(search) !== -1));
   });
   document.getElementById("checkinList").innerHTML = rows.map(function(a) {
     var isIn     = a.attendanceStatus === "Checked In";
@@ -507,10 +609,11 @@ function addWalkin() {
     id: Date.now(),
     firstName: first, lastName: last,
     contract: contract, department: "—",
-    regStatus: "Walk-in",  guestName: guest,
+    regStatus: "—",        guestName: guest,
     dietary: "",           attendanceStatus: "Walk-in",
     remindersSent: 0,      respondedAt: "Walk-in",
   });
+  addAudit(first + " " + last, "Walk-in added during day-of check-in", "Check-in admin");
   document.getElementById("walkinFirst").value = "";
   document.getElementById("walkinLast").value  = "";
   document.getElementById("walkinGuest").value = "";
@@ -526,7 +629,7 @@ function renderExport() {
   var walkin     = hh().filter(function(a) { return a.attendanceStatus === "Walk-in";    }).length;
 
   document.getElementById("exportStats").innerHTML =
-    statBox("Total invited",    hh().length) +
+    statBox("Total invited",    invitedCount()) +
     statBox("Registered",       registered,      "green") +
     statBox("Checked in",       ci + walkin,     "green") +
     statBox("Survey responses", happyHour.surveySent ? "3 of " + (ci + walkin) : "Not yet sent", happyHour.surveySent ? "amber" : "");
@@ -551,7 +654,9 @@ function renderExport() {
       + '<div class="survey-result-row"><span>Would recommend</span><div></div><span>3 Yes, 0 No, 0 Maybe</span></div>'
       + '<p style="margin-top:16px;font-size:0.85rem;color:var(--muted)">Survey sent to ' + (ci + walkin) + ' checked-in attendees. 3 responses received.</p>';
   } else {
-    surveyEl.innerHTML = '<p style="color:var(--muted);font-size:0.88rem">Survey has not been sent yet. Use the <strong>Send post-event survey</strong> button above to send it to checked-in attendees.</p>';
+    surveyEl.innerHTML = happyHour.status === "Completed"
+      ? '<p style="color:var(--muted);font-size:0.88rem">Survey has not been sent yet. Use the <strong>Send post-event survey</strong> button above to send it to checked-in attendees.</p>'
+      : '<p style="color:var(--muted);font-size:0.88rem">Complete the event from the check-in screen before sending the post-event survey.</p>';
   }
 
   // Show/hide survey button based on state
@@ -559,6 +664,14 @@ function renderExport() {
   if (surveyBtn) {
     surveyBtn.style.display = happyHour.surveySent ? "none" : "";
     surveyBtn.textContent   = happyHour.surveySent ? "Survey sent" : "Send post-event survey";
+    surveyBtn.disabled = happyHour.status !== "Completed";
+    surveyBtn.title = happyHour.status === "Completed" ? "" : "Complete the event before sending the survey";
+  }
+
+  var archiveBtn = document.getElementById("btnArchiveEvent");
+  if (archiveBtn) {
+    archiveBtn.disabled = happyHour.status !== "Completed";
+    archiveBtn.title = happyHour.status === "Completed" ? "" : "Complete the event before archiving";
   }
 
   // Event status pill
@@ -582,7 +695,58 @@ function toggleGuestField(radio) {
   document.getElementById("guestNameQuestion").style.display = radio.value === "yes" ? "block" : "none";
 }
 
+function applyRsvpStateToAdmin(state, actionLabel) {
+  var attendee = rsvpAttendeeId
+    ? hh().find(function(a) { return a.id === rsvpAttendeeId; })
+    : findAttendeeForRsvp(state);
+  var isNew = !attendee;
+  var oldStatus = attendee ? attendee.regStatus : "Invited";
+  var newStatus = state.attending ? "Registered" : "Declined";
+
+  if (!attendee) {
+    attendee = {
+      id: Date.now(),
+      firstName: state.firstName,
+      lastName: state.lastName,
+      contract: state.contract,
+      department: state.department || "—",
+      regStatus: "Invited",
+      guestName: "",
+      dietary: "",
+      attendanceStatus: "—",
+      remindersSent: 0,
+      respondedAt: "",
+      email: state.email,
+    };
+    happyHour.attendees.push(attendee);
+  }
+
+  attendee.firstName = state.firstName;
+  attendee.lastName = state.lastName;
+  attendee.email = state.email;
+  attendee.contract = state.contract;
+  attendee.department = state.department || "—";
+  attendee.regStatus = newStatus;
+  attendee.guestName = state.attending ? state.guestName : "";
+  attendee.dietary = state.attending ? state.dietary : "";
+  attendee.attendanceStatus = state.attending ? "Not Checked In" : "—";
+  attendee.respondedAt = "May 4 (now)";
+  attendee.photoConsent = state.photoConsent;
+  rsvpAttendeeId = attendee.id;
+
+  addAudit(
+    fullName(attendee),
+    (isNew ? "New RSVP created" : actionLabel || "RSVP updated") + ": " + oldStatus + " → " + newStatus,
+    fullName(attendee) + " (self)"
+  );
+}
+
 function submitRSVP() {
+  if (isRegistrationLocked()) {
+    showToast("Registration is closed. Please contact Rebecca Bunch for changes.", true);
+    showScreen("screen-invite");
+    return;
+  }
   var first    = document.getElementById("rsvpFirst").value.trim();
   var last     = document.getElementById("rsvpLast").value.trim();
   var email    = document.getElementById("rsvpEmail").value.trim();
@@ -591,6 +755,10 @@ function submitRSVP() {
 
   if (!first || !last || !email || !contract || !attended) {
     showToast("Please complete all required fields before submitting.", true);
+    return;
+  }
+  if (!document.getElementById("rsvpPhoto").checked) {
+    showToast("Please answer the required photo consent question.", true);
     return;
   }
 
@@ -606,6 +774,7 @@ function submitRSVP() {
     photoConsent: document.getElementById("rsvpPhoto").checked,
   };
   rsvpCanceled = false;
+  applyRsvpStateToAdmin(rsvpState, "RSVP submitted");
   showScreen("screen-confirm");
   renderConfirmation();
 }
@@ -655,7 +824,21 @@ function renderConfirmation() {
 }
 
 function cancelRSVP() {
+  if (isRegistrationLocked()) {
+    showToast("Registration is closed. Please contact Rebecca Bunch for changes.", true);
+    showScreen("screen-invite");
+    return;
+  }
   if (!confirm("Cancel your registration for Happy Hour? You can re-register before the deadline.")) return;
+  var attendee = rsvpAttendeeId ? hh().find(function(a) { return a.id === rsvpAttendeeId; }) : null;
+  if (attendee) {
+    var oldStatus = attendee.regStatus;
+    attendee.regStatus = "Canceled";
+    attendee.attendanceStatus = "—";
+    attendee.guestName = "";
+    attendee.respondedAt = "May 4 (now)";
+    addAudit(fullName(attendee), "Registration status: " + oldStatus + " → Canceled", fullName(attendee) + " (self)");
+  }
   rsvpCanceled = true;
   showScreen("screen-confirm");
   renderConfirmation();
@@ -681,6 +864,11 @@ function prefillEditForm() {
 }
 
 function updateRSVP() {
+  if (isRegistrationLocked()) {
+    showToast("Registration is closed. Please contact Rebecca Bunch for changes.", true);
+    showScreen("screen-invite");
+    return;
+  }
   var first    = document.getElementById("editFirst").value.trim();
   var last     = document.getElementById("editLast").value.trim();
   var email    = document.getElementById("editEmail").value.trim();
@@ -689,6 +877,10 @@ function updateRSVP() {
 
   if (!first || !last || !email || !contract || !attended) {
     showToast("Please complete all required fields.", true);
+    return;
+  }
+  if (!document.getElementById("editPhoto").checked) {
+    showToast("Please answer the required photo consent question.", true);
     return;
   }
   rsvpState = {
@@ -701,6 +893,7 @@ function updateRSVP() {
     photoConsent: document.getElementById("editPhoto").checked,
   };
   rsvpCanceled = false;
+  applyRsvpStateToAdmin(rsvpState, "RSVP edited; latest submission wins");
   showScreen("screen-confirm");
   renderConfirmation();
 }

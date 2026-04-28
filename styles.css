@@ -34,6 +34,7 @@ body {
 
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.55; }
 a { color: var(--accent); }
 
 .hidden { display: none !important; }
@@ -391,6 +392,13 @@ th { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
 .checkin-title { color: #fff; margin: 0; font-size: 1.6rem; }
 
 .checkin-header-stats { display: flex; gap: 28px; }
+
+.checkin-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 
 .checkin-stat { text-align: center; }
 .checkin-stat strong { display: block; color: #fff; font-size: 1.8rem; line-height: 1; }
