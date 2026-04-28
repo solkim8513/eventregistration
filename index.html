@@ -101,12 +101,12 @@
           <header class="topbar">
             <div>
               <p class="eyebrow">Admin &middot; Happy Hour</p>
-              <h1>Event Setup</h1>
+              <h1>Event Setup <span id="setupStatusBadge"></span></h1>
             </div>
             <div class="topbar-actions">
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
-              <button class="secondary-button" onclick="alertSave('Event saved as Draft')" type="button">Save as Draft</button>
-              <button class="primary-button" onclick="alertSave('Event opened — invitations will be sent')" type="button">Open Event</button>
+              <button class="secondary-button" onclick="saveAsDraft()" type="button">Save as Draft</button>
+              <button class="primary-button" onclick="openEvent()" type="button">Open Event</button>
             </div>
           </header>
 
@@ -228,8 +228,9 @@
             </div>
             <div style="display:flex;gap:12px;margin-top:18px">
               <button class="secondary-button" type="button">Clear</button>
-              <button class="primary-button" onclick="alertSave('10 invitees added to Happy Hour')" type="button">Confirm &amp; add 10 invitees</button>
+              <button class="primary-button" onclick="confirmInvitees()" type="button">Confirm &amp; add 10 invitees</button>
             </div>
+            <div id="uploadSuccessBanner" class="success-banner hidden"></div>
           </div>
         </div><!-- /screen-upload -->
 
@@ -242,8 +243,8 @@
             </div>
             <div class="topbar-actions">
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
-              <button class="secondary-button" onclick="alertSave('Reminder queued for non-respondents')" type="button">Send reminder now</button>
-              <button class="primary-button" onclick="showScreen('screen-closed')" type="button">Close registration</button>
+              <button class="secondary-button" onclick="sendReminderNow()" type="button">Send reminder now</button>
+              <button class="primary-button" onclick="closeRegistrationNow()" type="button">Close registration</button>
             </div>
           </header>
 
@@ -294,7 +295,7 @@
             <div class="topbar-actions">
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
               <button class="secondary-button" onclick="alertSave('Add attendee dialog would open here')" type="button">Add attendee</button>
-              <button class="primary-button" onclick="alertSave('Exporting to Excel...')" type="button">Export</button>
+              <button class="primary-button" onclick="exportToExcel()" type="button">Export</button>
             </div>
           </header>
 
@@ -417,9 +418,11 @@
               <h1>Results &amp; Export</h1>
             </div>
             <div class="topbar-actions">
+              <div id="exportEventStatus"></div>
+              <button id="btnSendSurvey" class="secondary-button" onclick="sendPostEventSurvey()" type="button">Send post-event survey</button>
               <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
-              <button class="secondary-button" onclick="alertSave('Exporting to Excel...')" type="button">Export to Excel</button>
-              <button class="primary-button" onclick="alertSave('Event archived')" type="button">Archive event</button>
+              <button class="secondary-button" onclick="exportToExcel()" type="button">Export to Excel</button>
+              <button class="primary-button" onclick="archiveEvent()" type="button">Archive event</button>
             </div>
           </header>
 
@@ -476,9 +479,14 @@
             </div>
             <p style="margin-top:20px">Join us for a casual Happy Hour to close out the week! Light appetizers and beverages provided. You may bring one guest.</p>
             <p class="forms-deadline">RSVP deadline: <strong>Saturday, May 9, 2026</strong></p>
-            <div class="forms-action-row">
-              <button class="forms-submit-btn" onclick="showScreen('screen-rsvp')" type="button">RSVP now &rarr;</button>
-              <button class="forms-secondary-btn" onclick="alertSave('Calendar invite downloaded')" type="button">Add to calendar</button>
+            <div id="inviteOpenBlock">
+              <div class="forms-action-row">
+                <button class="forms-submit-btn" onclick="showScreen('screen-rsvp')" type="button">RSVP now &rarr;</button>
+                <button class="forms-secondary-btn" onclick="alertSave('Calendar invite downloaded')" type="button">Add to calendar</button>
+              </div>
+            </div>
+            <div id="inviteClosedBlock" class="hidden">
+              <p class="forms-closed-notice">Registration for this event is now closed. Please contact <a href="mailto:rebecca.bunch@nw-its.com">Rebecca Bunch (rebecca.bunch@nw-its.com)</a> if you have any questions.</p>
             </div>
           </div>
         </div>
