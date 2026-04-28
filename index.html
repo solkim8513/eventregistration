@@ -3,11 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NIS Event Registration Admin</title>
+    <title>NIS Event Registration POC</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+
+    <!-- ═══════════════════════════════════════════════════
+         ADMIN SHELL
+    ════════════════════════════════════════════════════ -->
+    <div id="adminShell" class="app-shell">
       <aside class="sidebar" aria-label="Admin navigation">
         <div class="brand">
           <span class="brand-mark">NIS</span>
@@ -17,153 +21,754 @@
           </div>
         </div>
 
-        <nav class="nav-list" aria-label="Primary">
-          <button class="nav-item active" type="button">Events</button>
-          <button class="nav-item" type="button">Check-in</button>
-          <button class="nav-item" type="button">Reminders</button>
-          <button class="nav-item" type="button">Reports</button>
+        <nav class="nav-list">
+          <button class="nav-item active" data-screen="screen-dashboard" type="button">Dashboard</button>
+          <button class="nav-item" data-screen="screen-setup" type="button">Event Setup</button>
+          <button class="nav-item" data-screen="screen-upload" type="button">Upload Invite List</button>
+          <button class="nav-item" data-screen="screen-monitoring" type="button">Response Monitoring</button>
+          <button class="nav-item" data-screen="screen-attendee-mgmt" type="button">Attendee Management</button>
+          <button class="nav-item" data-screen="screen-closed" type="button">Registration Closed</button>
+          <button class="nav-item" data-screen="screen-checkin" type="button">Day-of Check-in</button>
+          <button class="nav-item" data-screen="screen-export" type="button">Results &amp; Export</button>
         </nav>
 
-        <div class="sidebar-note">
-          <strong>POC scope</strong>
-          <span>Static sample data now. Power Apps and SharePoint Lists later.</span>
+        <div class="sidebar-footer">
+          <button class="attendee-preview-btn" id="btnAttendeeView" type="button">Preview Attendee View &rarr;</button>
+          <div class="sidebar-note">
+            <strong>POC only</strong>
+            <span>Static sample data. Power Apps + SharePoint Lists in production.</span>
+          </div>
         </div>
       </aside>
 
-      <main class="main-content">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Internal events</p>
-            <h1>Registration control center</h1>
-          </div>
-          <div class="topbar-actions">
-            <button class="secondary-button" type="button">Export list</button>
-            <button class="primary-button" type="button">Create event</button>
-          </div>
-        </header>
+      <main class="main-content" id="adminMain">
 
-        <section class="summary-grid" aria-label="Event summary">
-          <div class="metric">
-            <span>Upcoming events</span>
-            <strong id="metricEvents">0</strong>
-          </div>
-          <div class="metric">
-            <span>Total registered</span>
-            <strong id="metricRegistered">0</strong>
-          </div>
-          <div class="metric">
-            <span>Checked in</span>
-            <strong id="metricCheckedIn">0</strong>
-          </div>
-          <div class="metric">
-            <span>Open tasks</span>
-            <strong id="metricTasks">0</strong>
-          </div>
-        </section>
-
-        <div class="workspace">
-          <section class="event-list-panel" aria-label="Events">
-            <div class="section-header">
-              <div>
-                <h2>Events</h2>
-                <p>Select an event to manage registrations and reminders.</p>
-              </div>
-              <select id="statusFilter" aria-label="Filter events by status">
-                <option value="all">All statuses</option>
-                <option value="Planning">Planning</option>
-                <option value="Open">Open</option>
-                <option value="Closed">Closed</option>
-              </select>
+        <!-- ── SCREEN 1: Dashboard ── -->
+        <div id="screen-dashboard" class="screen">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Internal events</p>
+              <h1>Registration control center</h1>
             </div>
-            <div class="event-list" id="eventList"></div>
+            <div class="topbar-actions">
+              <button class="secondary-button" type="button">Export list</button>
+              <button class="primary-button" onclick="showScreen('screen-setup')" type="button">+ Create event</button>
+            </div>
+          </header>
+
+          <section class="summary-grid" aria-label="Event summary">
+            <div class="metric"><span>Total events</span><strong id="metricEvents">0</strong></div>
+            <div class="metric"><span>Total registered</span><strong id="metricRegistered">0</strong></div>
+            <div class="metric"><span>Checked in</span><strong id="metricCheckedIn">0</strong></div>
+            <div class="metric"><span>Open events</span><strong id="metricOpen">0</strong></div>
           </section>
 
-          <section class="detail-panel" aria-label="Selected event details">
-            <div class="event-hero">
+          <div class="workspace">
+            <section class="event-list-panel" aria-label="All events">
+              <div class="section-header">
+                <div>
+                  <h2>All events</h2>
+                  <p>Select an event to manage it.</p>
+                </div>
+                <select id="statusFilter" aria-label="Filter by status">
+                  <option value="all">All statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Open">Open</option>
+                  <option value="Closed">Closed</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </div>
+              <div class="event-list" id="eventList"></div>
+            </section>
+
+            <section class="detail-panel" aria-label="Selected event">
+              <div class="event-hero">
+                <div>
+                  <p class="eyebrow" id="eventStatus">&#8212;</p>
+                  <h2 id="eventTitle">Select an event</h2>
+                  <p id="eventMeta">Event details appear here.</p>
+                </div>
+                <div class="capacity-pill" id="eventCapacity">&#8212;</div>
+              </div>
+              <div id="eventQuickActions"></div>
+            </section>
+          </div>
+        </div><!-- /screen-dashboard -->
+
+        <!-- ── SCREEN 2: Event Setup ── -->
+        <div id="screen-setup" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Event Setup</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
+              <button class="secondary-button" onclick="alertSave('Event saved as Draft')" type="button">Save as Draft</button>
+              <button class="primary-button" onclick="alertSave('Event opened — invitations will be sent')" type="button">Open Event</button>
+            </div>
+          </header>
+
+          <div class="form-card">
+            <h2>Event details</h2>
+            <div class="form-grid">
+              <label>Event name *<input type="text" value="Happy Hour" /></label>
+              <label>Event type *
+                <select>
+                  <option selected>Happy Hour</option>
+                  <option>AEAE / Anniversary</option>
+                  <option>Spring Picnic</option>
+                  <option>Oktoberfest</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label>Date *<input type="date" value="2026-05-16" /></label>
+              <label>Time<input type="text" value="5:00 PM - 7:00 PM" /></label>
+              <label class="full-span">Location *<input type="text" value="The Rooftop Bar &amp; Lounge" /></label>
+              <label class="full-span">Description<textarea rows="3">Join us for a casual Happy Hour to close out the week! Light appetizers and beverages provided.</textarea></label>
+              <label>RSVP deadline *<input type="date" value="2026-05-09" /></label>
+              <label>Cancellation deadline<input type="date" value="2026-05-09" /></label>
+              <label>Capacity (optional)<input type="number" value="80" /></label>
+              <label>Event owner<input type="text" value="Rebecca Bunch" /></label>
+            </div>
+
+            <h2 class="section-divider">Audience &amp; invitations</h2>
+            <div class="form-grid">
+              <label class="full-span">Invite audience
+                <select>
+                  <option>All NIS employees</option>
+                  <option>NIS employees + contractors (SAIC)</option>
+                  <option>NIS employees + all contractors</option>
+                  <option>Custom list (upload below)</option>
+                </select>
+              </label>
+              <label>Reminder cadence
+                <select>
+                  <option>Weekly + 3x final week (default)</option>
+                  <option>Weekly only</option>
+                  <option>Manual only</option>
+                </select>
+              </label>
+            </div>
+
+            <h2 class="section-divider">Event-specific fields &mdash; Happy Hour</h2>
+            <div class="form-grid">
+              <label class="full-span checkbox-label">
+                <input type="checkbox" checked />
+                Include guest name field (attendee may bring one guest)
+              </label>
+            </div>
+
+            <h2 class="section-divider">Post-event survey</h2>
+            <div class="form-grid">
+              <label>Send survey to
+                <select>
+                  <option>Checked-in attendees only</option>
+                  <option>All registered</option>
+                  <option>Do not send survey</option>
+                </select>
+              </label>
+              <label>Survey delay after event
+                <select>
+                  <option>Same day (evening)</option>
+                  <option>Next morning</option>
+                  <option>Manual send</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div><!-- /screen-setup -->
+
+        <!-- ── SCREEN 3: Upload Invite List ── -->
+        <div id="screen-upload" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Upload Invite List</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
+              <button class="secondary-button" type="button">Download CSV template</button>
+              <button class="primary-button" type="button">Upload CSV</button>
+            </div>
+          </header>
+
+          <div class="form-card">
+            <h2>Required columns</h2>
+            <p>Your CSV must include these columns. Additional columns are ignored.</p>
+            <div class="table-wrap" style="margin-top:14px">
+              <table>
+                <thead><tr><th>Column</th><th>Required</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td>first_name</td><td>Yes</td><td></td></tr>
+                  <tr><td>last_name</td><td>Yes</td><td></td></tr>
+                  <tr><td>email</td><td>Yes</td><td>Used for invite and confirmation emails</td></tr>
+                  <tr><td>contract</td><td>Yes</td><td>NIS Employee, Contractor - SAIC, etc.</td></tr>
+                  <tr><td>department</td><td>No</td><td></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="upload-drop-zone">
+              <p>Drag and drop your CSV here, or</p>
+              <button class="primary-button" type="button">Browse files</button>
+              <p class="upload-note">Accepted: .csv &mdash; max 1,000 rows</p>
+            </div>
+
+            <h2 class="section-divider">Preview &mdash; sample data loaded</h2>
+            <p>Showing first 5 rows of 10 valid records. 0 errors detected.</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>#</th><th>First name</th><th>Last name</th><th>Email</th><th>Contract</th><th>Department</th><th>Status</th></tr>
+                </thead>
+                <tbody id="uploadPreviewRows"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:18px">
+              <button class="secondary-button" type="button">Clear</button>
+              <button class="primary-button" onclick="alertSave('10 invitees added to Happy Hour')" type="button">Confirm &amp; add 10 invitees</button>
+            </div>
+          </div>
+        </div><!-- /screen-upload -->
+
+        <!-- ── SCREEN 4: Response Monitoring ── -->
+        <div id="screen-monitoring" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Response Monitoring</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
+              <button class="secondary-button" onclick="alertSave('Reminder queued for non-respondents')" type="button">Send reminder now</button>
+              <button class="primary-button" onclick="showScreen('screen-closed')" type="button">Close registration</button>
+            </div>
+          </header>
+
+          <div class="stat-row" id="monitoringStats"></div>
+
+          <div class="form-card" style="margin-top:18px">
+            <div class="section-header" style="margin-bottom:14px">
+              <h2>Attendee responses</h2>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <select id="monitorFilter" onchange="renderMonitoringTable()">
+                  <option value="all">All statuses</option>
+                  <option value="Invited">Invited (no response)</option>
+                  <option value="Registered">Registered</option>
+                  <option value="Declined">Declined</option>
+                  <option value="Canceled">Canceled</option>
+                </select>
+                <input id="monitorSearch" type="search" placeholder="Search name..." style="width:200px" oninput="renderMonitoringTable()" />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Contract</th><th>Department</th><th>Status</th><th>Guest name</th><th>Responded</th><th>Reminders sent</th></tr>
+                </thead>
+                <tbody id="monitoringRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="form-card" style="margin-top:18px">
+            <h2>Reminder cadence</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Audience</th><th>Type</th><th>Status</th></tr></thead>
+                <tbody id="reminderLog"></tbody>
+              </table>
+            </div>
+          </div>
+        </div><!-- /screen-monitoring -->
+
+        <!-- ── SCREEN 5: Attendee Management ── -->
+        <div id="screen-attendee-mgmt" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Attendee Management</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
+              <button class="secondary-button" onclick="alertSave('Add attendee dialog would open here')" type="button">Add attendee</button>
+              <button class="primary-button" onclick="alertSave('Exporting to Excel...')" type="button">Export</button>
+            </div>
+          </header>
+
+          <div class="form-card">
+            <div class="section-header" style="margin-bottom:14px">
+              <h2>All attendees</h2>
+              <input id="mgmtSearch" type="search" placeholder="Search name or status..." style="width:260px" oninput="renderMgmtTable()" />
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Contract</th><th>Department</th><th>Reg. status</th><th>Guest name</th><th>Dietary / access.</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="mgmtRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="form-card" style="margin-top:18px">
+            <h2>Audit log</h2>
+            <p>Record of admin changes to attendee records for this event.</p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Timestamp</th><th>Attendee</th><th>Change</th><th>Changed by</th></tr></thead>
+                <tbody id="auditRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div><!-- /screen-attendee-mgmt -->
+
+        <!-- ── SCREEN 6: Registration Closed ── -->
+        <div id="screen-closed" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Registration Closed</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-monitoring')" type="button">&larr; Back to monitoring</button>
+              <button class="primary-button" onclick="showScreen('screen-checkin')" type="button">Go to Day-of Check-in &rarr;</button>
+            </div>
+          </header>
+
+          <div class="closed-banner">
+            <div class="closed-icon">&#128274;</div>
+            <h2>Registration is now closed</h2>
+            <p>No further RSVP submissions or cancellations are accepted. The attendee list is locked.</p>
+            <p>For corrections, contact <a href="mailto:rebecca.bunch@nw-its.com">rebecca.bunch@nw-its.com</a>.</p>
+          </div>
+
+          <div class="stat-row" id="closedStats" style="margin-top:18px"></div>
+
+          <div class="form-card" style="margin-top:18px">
+            <h2>Final attendee list (locked)</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Contract</th><th>Department</th><th>Status</th><th>Guest name</th><th>Dietary / access.</th></tr></thead>
+                <tbody id="closedRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div><!-- /screen-closed -->
+
+        <!-- ── SCREEN 7: Day-of Check-in ── -->
+        <div id="screen-checkin" class="screen hidden">
+          <div class="portrait-warning">
+            <p>&#8635; Please rotate your device to landscape for the best check-in experience.</p>
+          </div>
+          <div class="checkin-shell">
+            <div class="checkin-header">
               <div>
-                <p class="eyebrow" id="eventStatus">Open</p>
-                <h2 id="eventTitle">Select an event</h2>
-                <p id="eventMeta">Event details appear here.</p>
+                <span class="checkin-eyebrow">NIS Happy Hour &mdash; May 16, 2026</span>
+                <h1 class="checkin-title">Event Check-in</h1>
               </div>
-              <div class="capacity-pill" id="eventCapacity">0 / 0</div>
+              <div class="checkin-header-stats" id="checkinHeaderStats"></div>
+              <button class="checkin-admin-back" onclick="showScreen('screen-closed')" type="button">&larr; Admin</button>
             </div>
 
-            <div class="tabs" role="tablist" aria-label="Event detail views">
-              <button class="tab active" data-tab="registrants" type="button">Registrants</button>
-              <button class="tab" data-tab="checkin" type="button">Check-in</button>
-              <button class="tab" data-tab="reminders" type="button">Reminders</button>
-              <button class="tab" data-tab="tasks" type="button">Tasks</button>
-            </div>
-
-            <section class="tab-panel active" id="registrantsPanel">
-              <div class="table-toolbar">
-                <input id="registrantSearch" type="search" placeholder="Search registrants" />
-                <button class="secondary-button" type="button">Add registrant</button>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Department</th>
-                      <th>Guests</th>
-                      <th>Dietary notes</th>
-                      <th>Status</th>
-                      <th>Check-in</th>
-                    </tr>
-                  </thead>
-                  <tbody id="registrantRows"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="tab-panel" id="checkinPanel">
-              <div class="checkin-box">
-                <label for="checkinSearch">Find attendee</label>
-                <input id="checkinSearch" type="search" placeholder="Type a name, department, or note" />
+            <div class="checkin-body">
+              <div class="checkin-search-col">
+                <input id="checkinSearch" class="checkin-search-input" type="search" placeholder="Search by name..." oninput="renderCheckinList()" />
                 <div class="checkin-list" id="checkinList"></div>
-              </div>
-            </section>
 
-            <section class="tab-panel" id="remindersPanel">
-              <div class="reminder-layout">
-                <form class="reminder-form">
-                  <label>
-                    Audience
-                    <select>
-                      <option>All registered employees</option>
-                      <option>Not checked in</option>
-                      <option>Waitlist only</option>
-                    </select>
-                  </label>
-                  <label>
-                    Subject
-                    <input id="reminderSubject" type="text" />
-                  </label>
-                  <label>
-                    Message
-                    <textarea id="reminderMessage" rows="8"></textarea>
-                  </label>
-                  <div class="form-actions">
-                    <button class="secondary-button" type="button">Save draft</button>
-                    <button class="primary-button" type="button">Schedule reminder</button>
+                <div class="walkin-section">
+                  <h3>Walk-in entry</h3>
+                  <p>Add an attendee not on the pre-registered list.</p>
+                  <div class="form-grid" style="margin-top:12px">
+                    <label>First name *<input id="walkinFirst" type="text" /></label>
+                    <label>Last name *<input id="walkinLast" type="text" /></label>
+                    <label>Contract *
+                      <select id="walkinContract">
+                        <option>NIS Employee</option>
+                        <option>Contractor - SAIC</option>
+                        <option>Contractor - Leidos</option>
+                        <option>Contractor - Booz Allen</option>
+                        <option>Other</option>
+                      </select>
+                    </label>
+                    <label>Plus-one name<input id="walkinGuest" type="text" /></label>
                   </div>
-                </form>
-                <div class="reminder-preview">
-                  <span>Preview</span>
-                  <strong id="previewSubject"></strong>
-                  <p id="previewMessage"></p>
+                  <button class="primary-button walkin-submit" onclick="addWalkin()" type="button">Add Walk-in &amp; Check In</button>
                 </div>
               </div>
-            </section>
 
-            <section class="tab-panel" id="tasksPanel">
-              <div class="task-list" id="taskList"></div>
-            </section>
-          </section>
-        </div>
+              <div class="checkin-status-col">
+                <h2 style="margin:0 0 14px">Check-in summary</h2>
+                <div id="checkinSummaryCards"></div>
+                <h3 style="margin:28px 0 10px">Not yet arrived (pre-registered)</h3>
+                <div id="noshowList"></div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /screen-checkin -->
+
+        <!-- ── SCREEN 8: Results & Export ── -->
+        <div id="screen-export" class="screen hidden">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">Admin &middot; Happy Hour</p>
+              <h1>Results &amp; Export</h1>
+            </div>
+            <div class="topbar-actions">
+              <button class="secondary-button" onclick="showScreen('screen-dashboard')" type="button">&larr; Back</button>
+              <button class="secondary-button" onclick="alertSave('Exporting to Excel...')" type="button">Export to Excel</button>
+              <button class="primary-button" onclick="alertSave('Event archived')" type="button">Archive event</button>
+            </div>
+          </header>
+
+          <div class="stat-row" id="exportStats"></div>
+
+          <div class="workspace" style="margin-top:18px;align-items:start">
+            <div class="form-card">
+              <h2>Registration &amp; attendance</h2>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Name</th><th>Contract</th><th>Reg. status</th><th>Attendance</th><th>Guest name</th></tr></thead>
+                  <tbody id="exportRows"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="form-card">
+              <h2>Post-event survey summary</h2>
+              <div id="surveyResults"></div>
+            </div>
+          </div>
+        </div><!-- /screen-export -->
+
       </main>
-    </div>
+    </div><!-- /adminShell -->
+
+
+    <!-- ═══════════════════════════════════════════════════
+         ATTENDEE SHELL — MS Forms style
+    ════════════════════════════════════════════════════ -->
+    <div id="attendeeShell" class="hidden">
+
+      <div class="forms-topbar">
+        <span class="forms-brand">NIS Events</span>
+        <button class="forms-admin-link" onclick="showShell('admin','screen-dashboard')" type="button">&larr; Admin demo view</button>
+      </div>
+
+      <!-- ── ATTENDEE SCREEN 1: Invitation ── -->
+      <div id="screen-invite" class="screen forms-page">
+        <div class="forms-card forms-header-card">
+          <div class="forms-event-banner"></div>
+          <div class="forms-card-body">
+            <h1 class="forms-title">You're invited: Happy Hour</h1>
+            <p class="forms-subtitle">NIS Internal Event &mdash; Administrative Services</p>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="event-detail-grid">
+              <div class="event-detail-item"><span class="detail-label">Date</span><span>Friday, May 16, 2026</span></div>
+              <div class="event-detail-item"><span class="detail-label">Time</span><span>5:00 PM - 7:00 PM</span></div>
+              <div class="event-detail-item"><span class="detail-label">Location</span><span>The Rooftop Bar &amp; Lounge</span></div>
+              <div class="event-detail-item"><span class="detail-label">Host</span><span>Rebecca Bunch / Administrative Services</span></div>
+            </div>
+            <p style="margin-top:20px">Join us for a casual Happy Hour to close out the week! Light appetizers and beverages provided. You may bring one guest.</p>
+            <p class="forms-deadline">RSVP deadline: <strong>Saturday, May 9, 2026</strong></p>
+            <div class="forms-action-row">
+              <button class="forms-submit-btn" onclick="showScreen('screen-rsvp')" type="button">RSVP now &rarr;</button>
+              <button class="forms-secondary-btn" onclick="alertSave('Calendar invite downloaded')" type="button">Add to calendar</button>
+            </div>
+          </div>
+        </div>
+
+        <p class="forms-footer">Questions? Contact <a href="mailto:rebecca.bunch@nw-its.com">rebecca.bunch@nw-its.com</a></p>
+      </div><!-- /screen-invite -->
+
+      <!-- ── ATTENDEE SCREEN 2: RSVP Form ── -->
+      <div id="screen-rsvp" class="screen forms-page hidden">
+        <div class="forms-card forms-header-card">
+          <div class="forms-event-banner"></div>
+          <div class="forms-card-body">
+            <h1 class="forms-title">Happy Hour &mdash; RSVP</h1>
+            <p class="forms-subtitle">Friday, May 16, 2026 &middot; 5:00-7:00 PM &middot; The Rooftop Bar &amp; Lounge</p>
+            <div class="forms-required-note">* Required</div>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="forms-question">
+              <label class="forms-label">First name <span class="forms-req">*</span></label>
+              <input class="forms-input" id="rsvpFirst" type="text" placeholder="Your answer" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Last name <span class="forms-req">*</span></label>
+              <input class="forms-input" id="rsvpLast" type="text" placeholder="Your answer" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Email address <span class="forms-req">*</span></label>
+              <input class="forms-input" id="rsvpEmail" type="email" placeholder="Your answer" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Contract / Affiliation <span class="forms-req">*</span></label>
+              <select class="forms-select" id="rsvpContract">
+                <option value="">Select one</option>
+                <option>NIS Employee</option>
+                <option>Contractor - SAIC</option>
+                <option>Contractor - Leidos</option>
+                <option>Contractor - Booz Allen</option>
+                <option>Contractor - Other</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="forms-question forms-question--last">
+              <label class="forms-label">Department</label>
+              <input class="forms-input" id="rsvpDept" type="text" placeholder="Your answer" />
+            </div>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="forms-question">
+              <label class="forms-label">Will you attend? <span class="forms-req">*</span></label>
+              <div class="forms-radio-group">
+                <label class="forms-radio-label">
+                  <input type="radio" name="rsvpAttend" value="yes" onchange="toggleGuestField(this)" />
+                  <span class="forms-radio-custom"></span>Yes, I will attend
+                </label>
+                <label class="forms-radio-label">
+                  <input type="radio" name="rsvpAttend" value="no" onchange="toggleGuestField(this)" />
+                  <span class="forms-radio-custom"></span>No, I cannot attend
+                </label>
+              </div>
+            </div>
+
+            <div class="forms-question" id="guestNameQuestion" style="display:none">
+              <label class="forms-label">Guest name <span class="forms-label-note">(optional &mdash; you may bring one guest)</span></label>
+              <input class="forms-input" id="rsvpGuest" type="text" placeholder="Your guest's full name" />
+            </div>
+
+            <div class="forms-question">
+              <label class="forms-label">Any accessibility or dietary needs?</label>
+              <input class="forms-input" id="rsvpDietary" type="text" placeholder="Leave blank if none" />
+            </div>
+
+            <div class="forms-question forms-question--last">
+              <label class="forms-label">Photo consent <span class="forms-req">*</span></label>
+              <label class="forms-checkbox-label">
+                <input type="checkbox" id="rsvpPhoto" />
+                <span class="forms-checkbox-custom"></span>
+                I consent to being photographed at this event. Photos may be used in internal NIS communications.
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="forms-submit-row">
+          <button class="forms-submit-btn" onclick="submitRSVP()" type="button">Submit</button>
+          <button class="forms-text-btn" onclick="showScreen('screen-invite')" type="button">&larr; Back</button>
+          <span class="forms-disclaimer">A confirmation copy will be sent to your email after submission.</span>
+        </div>
+      </div><!-- /screen-rsvp -->
+
+      <!-- ── ATTENDEE SCREEN 3: Confirmation ── -->
+      <div id="screen-confirm" class="screen forms-page hidden">
+        <div class="forms-card forms-header-card">
+          <div class="forms-event-banner"></div>
+          <div class="forms-card-body">
+            <h1 class="forms-title">Happy Hour &mdash; RSVP</h1>
+            <p class="forms-subtitle">Friday, May 16, 2026 &middot; 5:00-7:00 PM &middot; The Rooftop Bar &amp; Lounge</p>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body forms-confirmation">
+            <div class="forms-check-icon" id="confirmIcon">&#10003;</div>
+            <h2 id="confirmHeading">Your RSVP has been submitted!</h2>
+            <p id="confirmMessage">Thank you for responding. A confirmation has been sent to your email.</p>
+            <div id="confirmDetails"></div>
+            <div class="forms-action-row" id="confirmActions" style="margin-top:24px">
+              <button class="forms-secondary-btn" onclick="showScreen('screen-edit-rsvp')" type="button">Edit my RSVP</button>
+              <button class="forms-secondary-btn" onclick="alertSave('Calendar invite downloaded')" type="button">Add to calendar</button>
+              <button class="forms-text-btn" onclick="cancelRSVP()" type="button">Cancel my registration</button>
+            </div>
+            <p class="forms-deadline" style="margin-top:16px">Registration and cancellation deadline: <strong>Saturday, May 9, 2026</strong></p>
+          </div>
+        </div>
+
+        <p class="forms-footer">Questions? Contact <a href="mailto:rebecca.bunch@nw-its.com">rebecca.bunch@nw-its.com</a></p>
+      </div><!-- /screen-confirm -->
+
+      <!-- ── ATTENDEE SCREEN 4: Edit / Cancel RSVP ── -->
+      <div id="screen-edit-rsvp" class="screen forms-page hidden">
+        <div class="forms-card forms-header-card">
+          <div class="forms-event-banner"></div>
+          <div class="forms-card-body">
+            <h1 class="forms-title">Edit your RSVP &mdash; Happy Hour</h1>
+            <p class="forms-subtitle">Your latest submission replaces your previous response.</p>
+            <div class="forms-required-note">* Required</div>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="forms-question">
+              <label class="forms-label">First name <span class="forms-req">*</span></label>
+              <input class="forms-input" id="editFirst" type="text" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Last name <span class="forms-req">*</span></label>
+              <input class="forms-input" id="editLast" type="text" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Email address <span class="forms-req">*</span></label>
+              <input class="forms-input" id="editEmail" type="email" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Contract / Affiliation <span class="forms-req">*</span></label>
+              <select class="forms-select" id="editContract">
+                <option>NIS Employee</option>
+                <option>Contractor - SAIC</option>
+                <option>Contractor - Leidos</option>
+                <option>Contractor - Booz Allen</option>
+                <option>Contractor - Other</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Department</label>
+              <input class="forms-input" id="editDept" type="text" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Will you attend? <span class="forms-req">*</span></label>
+              <div class="forms-radio-group">
+                <label class="forms-radio-label">
+                  <input type="radio" name="editAttend" value="yes" />
+                  <span class="forms-radio-custom"></span>Yes, I will attend
+                </label>
+                <label class="forms-radio-label">
+                  <input type="radio" name="editAttend" value="no" />
+                  <span class="forms-radio-custom"></span>No, I cannot attend
+                </label>
+              </div>
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Guest name <span class="forms-label-note">(optional)</span></label>
+              <input class="forms-input" id="editGuest" type="text" />
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Any accessibility or dietary needs?</label>
+              <input class="forms-input" id="editDietary" type="text" />
+            </div>
+            <div class="forms-question forms-question--last">
+              <label class="forms-label">Photo consent <span class="forms-req">*</span></label>
+              <label class="forms-checkbox-label">
+                <input type="checkbox" id="editPhoto" />
+                <span class="forms-checkbox-custom"></span>
+                I consent to being photographed at this event.
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="forms-submit-row">
+          <button class="forms-submit-btn" onclick="updateRSVP()" type="button">Update my RSVP</button>
+          <button class="forms-text-btn" onclick="showScreen('screen-confirm')" type="button">&larr; Back</button>
+          <button class="forms-danger-btn" onclick="cancelRSVP()" type="button">Cancel my registration</button>
+        </div>
+      </div><!-- /screen-edit-rsvp -->
+
+      <!-- ── ATTENDEE SCREEN 5: Post-event Survey ── -->
+      <div id="screen-survey" class="screen forms-page hidden">
+        <div class="forms-card forms-header-card">
+          <div class="forms-event-banner"></div>
+          <div class="forms-card-body">
+            <h1 class="forms-title">Happy Hour &mdash; Post-Event Survey</h1>
+            <p class="forms-subtitle">Thank you for attending! Your feedback helps us plan better events.</p>
+            <div class="forms-required-note">* Required</div>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="forms-question">
+              <label class="forms-label">Overall, how would you rate this event? <span class="forms-req">*</span></label>
+              <div class="forms-rating" id="ratingOverall" data-rating="0">
+                <button type="button" data-val="1" onclick="setRating('ratingOverall',1)">1</button>
+                <button type="button" data-val="2" onclick="setRating('ratingOverall',2)">2</button>
+                <button type="button" data-val="3" onclick="setRating('ratingOverall',3)">3</button>
+                <button type="button" data-val="4" onclick="setRating('ratingOverall',4)">4</button>
+                <button type="button" data-val="5" onclick="setRating('ratingOverall',5)">5</button>
+              </div>
+              <div class="forms-rating-labels"><span>Poor</span><span>Excellent</span></div>
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">How would you rate the venue? <span class="forms-req">*</span></label>
+              <div class="forms-rating" id="ratingVenue" data-rating="0">
+                <button type="button" data-val="1" onclick="setRating('ratingVenue',1)">1</button>
+                <button type="button" data-val="2" onclick="setRating('ratingVenue',2)">2</button>
+                <button type="button" data-val="3" onclick="setRating('ratingVenue',3)">3</button>
+                <button type="button" data-val="4" onclick="setRating('ratingVenue',4)">4</button>
+                <button type="button" data-val="5" onclick="setRating('ratingVenue',5)">5</button>
+              </div>
+              <div class="forms-rating-labels"><span>Poor</span><span>Excellent</span></div>
+            </div>
+            <div class="forms-question forms-question--last">
+              <label class="forms-label">How would you rate the food and beverages?</label>
+              <div class="forms-rating" id="ratingFood" data-rating="0">
+                <button type="button" data-val="1" onclick="setRating('ratingFood',1)">1</button>
+                <button type="button" data-val="2" onclick="setRating('ratingFood',2)">2</button>
+                <button type="button" data-val="3" onclick="setRating('ratingFood',3)">3</button>
+                <button type="button" data-val="4" onclick="setRating('ratingFood',4)">4</button>
+                <button type="button" data-val="5" onclick="setRating('ratingFood',5)">5</button>
+              </div>
+              <div class="forms-rating-labels"><span>Poor</span><span>Excellent</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forms-card">
+          <div class="forms-card-body">
+            <div class="forms-question">
+              <label class="forms-label">What did you enjoy most about this event?</label>
+              <textarea class="forms-input" rows="3" placeholder="Your answer"></textarea>
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">What could we improve for next time?</label>
+              <textarea class="forms-input" rows="3" placeholder="Your answer"></textarea>
+            </div>
+            <div class="forms-question">
+              <label class="forms-label">Would you recommend this type of event to colleagues? <span class="forms-req">*</span></label>
+              <div class="forms-radio-group">
+                <label class="forms-radio-label"><input type="radio" name="surveyRecommend" value="yes" /><span class="forms-radio-custom"></span>Yes</label>
+                <label class="forms-radio-label"><input type="radio" name="surveyRecommend" value="maybe" /><span class="forms-radio-custom"></span>Maybe</label>
+                <label class="forms-radio-label"><input type="radio" name="surveyRecommend" value="no" /><span class="forms-radio-custom"></span>No</label>
+              </div>
+            </div>
+            <div class="forms-question forms-question--last">
+              <label class="forms-label">Any other comments?</label>
+              <textarea class="forms-input" rows="3" placeholder="Leave blank if none"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="forms-submit-row" id="surveySubmitRow">
+          <button class="forms-submit-btn" onclick="submitSurvey()" type="button">Submit survey</button>
+        </div>
+
+        <div id="surveyThankYou" class="forms-card hidden">
+          <div class="forms-card-body forms-confirmation">
+            <div class="forms-check-icon">&#10003;</div>
+            <h2>Thank you for your feedback!</h2>
+            <p>Your responses have been recorded. We hope to see you at the next NIS event.</p>
+          </div>
+        </div>
+      </div><!-- /screen-survey -->
+
+    </div><!-- /attendeeShell -->
 
     <script src="app.js"></script>
   </body>
