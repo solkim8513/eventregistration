@@ -175,15 +175,42 @@ function showScreen(id) {
 
 // ── Event status transitions ────────────────────────────────────────────────
 
+function readSetupForm() {
+  var name     = (document.getElementById("setupName")     || {}).value || "";
+  var timeVal  = (document.getElementById("setupTime")     || {}).value || "";
+  var location = (document.getElementById("setupLocation") || {}).value || "";
+  var owner    = (document.getElementById("setupOwner")    || {}).value || "";
+  var capacity = parseInt((document.getElementById("setupCapacity") || {}).value);
+  var dateStr  = (document.getElementById("setupDate")     || {}).value || "";
+  var rsvpStr  = (document.getElementById("setupRsvp")     || {}).value || "";
+
+  if (name.trim())     happyHour.title    = name.trim();
+  if (timeVal.trim())  happyHour.time     = timeVal.trim();
+  if (location.trim()) happyHour.location = location.trim();
+  if (owner.trim())    happyHour.owner    = owner.trim();
+  if (capacity > 0)    happyHour.capacity = capacity;
+
+  if (dateStr) {
+    var d = new Date(dateStr + "T12:00:00");
+    happyHour.date = d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  }
+  if (rsvpStr) {
+    var r = new Date(rsvpStr + "T12:00:00");
+    happyHour.rsvpDeadline = r.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  }
+}
+
 function saveAsDraft() {
+  readSetupForm();
   happyHour.status = "Draft";
-  showToast("Happy Hour saved as Draft.");
+  showToast(happyHour.title + " saved as Draft.");
   showScreen("screen-dashboard");
 }
 
 function openEvent() {
+  readSetupForm();
   happyHour.status = "Open";
-  showToast("Happy Hour is now Open. Invitations will be sent to " + hh().length + " attendees.");
+  showToast(happyHour.title + " is now Open. Invitations will be sent to " + hh().length + " attendees.");
   showScreen("screen-dashboard");
 }
 
@@ -342,6 +369,11 @@ function renderEventDetail() {
 function renderSetupStatus() {
   var el = document.getElementById("setupStatusBadge");
   if (el) el.innerHTML = eventStatusPill(happyHour.status);
+  var fn = document.getElementById("setupName");     if (fn) fn.value = happyHour.title;
+  var ft = document.getElementById("setupTime");     if (ft) ft.value = happyHour.time;
+  var fl = document.getElementById("setupLocation"); if (fl) fl.value = happyHour.location;
+  var fo = document.getElementById("setupOwner");    if (fo) fo.value = happyHour.owner;
+  var fc = document.getElementById("setupCapacity"); if (fc) fc.value = happyHour.capacity;
 }
 
 // ── Upload invite list ─────────────────────────────────────────────────────
@@ -530,7 +562,7 @@ function renderCheckin() {
 function renderCheckinList() {
   var search = (document.getElementById("checkinSearch").value || "").toLowerCase();
   var rows = hh().filter(function(a) {
-    return a.regStatus === "Registered" &&
+    return (a.regStatus === "Registered" || a.regStatus === "Walk-in") &&
       (!search
         || fullName(a).toLowerCase().indexOf(search) !== -1
         || a.contract.toLowerCase().indexOf(search) !== -1
